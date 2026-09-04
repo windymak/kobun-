@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古文単語テストアプリ</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 16px;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+
+        .btn-menu { background-color: #95a5a6; color: white; }
+        .btn-hard { background-color: #e67e22; color: white; width: 100%; }
+        .btn-easy { background-color: #3498db; color: white; width: 100%; }
+        .btn-review { background-color: #9b59b6; color: white; width: 100%; }
+        .btn-progress { background-color: #34495e; color: white; width: 100%; }
+        .btn-rank { background-color: #16a085; color: white; width: 100%; margin-bottom: 8px; }
+        .btn-reset { background-color: #c0392b; color: white; width: 100%; margin-top: 20px; }
+
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: #fafafa;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .word {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .part-of-speech {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 16px;
+            display: inline-block;
+            background: #ecf0f1;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .hidden-content {
+            display: none;
+            margin-top: 16px;
+            border-top: 1px dashed #dcdde1;
+            padding-top: 16px;
+            text-align: left;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .meaning {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            white-space: pre-line;
+        }
+
+        .goro {
+            font-size: 0.95rem;
+            color: #c0392b;
+            background: #fadbd8;
+            padding: 8px;
+            border-radius: 4px;
+            white-space: pre-line;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-known { background-color: var(--success-color); color: white; flex: 1; }
+        .btn-unknown { background-color: var(--accent-color); color: white; flex: 1; }
+        .btn-hint { background-color: #f39c12; color: white; width: 100%; margin-top: 10px; }
+
+        .progress-box {
+            margin-bottom: 16px;
+            background: #f1f2f6;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .progress-bar-container {
+            background: #dcdde1;
+            border-radius: 4px;
+            height: 12px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-bar {
+            background: var(--success-color);
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>古文単語マスター</h1>
+
+    <!-- メニュー画面 -->
+    <div id="menu-screen" class="screen active">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn-hard" onclick="openRankSelect('hard')">ハードモード（テスト形式）</button>
+            <button class="btn-easy" onclick="openRankSelect('easy')">のんびりモード（語呂付き）</button>
+            <button class="btn-review" onclick="startSession('review', 1)">復習モード（ランク1）</button>
+            <button class="btn-progress" onclick="showProgressScreen()">進捗状況を確認</button>
+            <button class="btn-reset" onclick="resetAppData()">データをリセットする</button>
+        </div>
+    </div>
+
+    <!-- ランク選択画面 -->
+    <div id="rank-screen" class="screen">
+        <div class="nav-buttons" style="justify-content: flex-start; margin-bottom: 15px;">
+            <button class="btn-menu" onclick="showScreen('menu-screen')">メニューへ戻る</button>
+        </div>
+        <h2 id="rank-select-title">ランクを選択してください</h2>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn-rank" onclick="startSession(selectedMode, 1)">ランク1</button>
+            <button class="btn-rank" style="background-color: #bdc3c7; cursor: not-allowed;" disabled>ランク2（今後追加予定）</button>
+            <button class="btn-rank" style="background-color: #bdc3c7; cursor: not-allowed;" disabled>ランク3（今後追加予定）</button>
+        </div>
+    </div>
+
+    <!-- 学習/テスト画面 -->
+    <div id="study-screen" class="screen">
+        <div class="nav-buttons" style="justify-content: space-between; margin-bottom: 10px;">
+            <button class="btn-menu" onclick="showScreen('menu-screen')">メニューへ戻る</button>
+            <span id="progress-counter" style="font-size: 0.9rem; font-weight: bold; color: #555;"></span>
+        </div>
+
+        <div class="card" id="card-box">
+            <div id="word-display" class="word"></div>
+            <div id="pos-display" class="part-of-speech"></div>
+            
+            <button id="hint-btn" class="btn-hint" onclick="showGoroHint()">ヒント（語呂）を見る</button>
+
+            <div id="answer-section" class="hidden-content">
+                <div id="meaning-display" class="meaning"></div>
+                <div id="goro-display" class="goro"></div>
+            </div>
+        </div>
+
+        <div id="judgment-buttons" class="action-buttons">
+            <button class="btn-unknown" onclick="answer(false)">わからなかった</button>
+            <button class="btn-known" onclick="answer(true)">わかった</button>
+        </div>
+        
+        <button id="next-btn" class="btn-menu" style="width: 100%; display: none;" onclick="nextCard()">次の単語へ</button>
+    </div>
+
+    <!-- 進捗画面 -->
+    <div id="progress-screen" class="screen">
+        <div class="nav-buttons" style="justify-content: flex-start; margin-bottom: 15px;">
+            <button class="btn-menu" onclick="showScreen('menu-screen')">メニューへ戻る</button>
+        </div>
+        <h2>学習進捗状況</h2>
+        
+        <div class="progress-box">
+            <div>ランク1 ハードモード 習得率: <span id="hard-pct-1">0%</span></div>
+            <div class="progress-bar-container"><div id="hard-bar-1" class="progress-bar"></div></div>
+        </div>
+
+        <div class="progress-box">
+            <div>ランク1 のんびりモード 習得率: <span id="easy-pct-1">0%</span></div>
+            <div class="progress-bar-container"><div id="easy-bar-1" class="progress-bar"></div></div>
+        </div>
+
+        <div class="progress-box">
+            <div>ランク1 復習モード待ち単語数: <span id="review-count-1">0</span> 語</div>
+        </div>
+
+        <button class="btn-reset" onclick="resetAppData()">データをリセットする</button>
+    </div>
+</div>
+
+<script>
+    const rank1Words = [
+        { id: 1, word: "あいなし", meaning: "①つまらない。面白くない。②気に食わない。③（連用形「あいなく（う）」の形で）わけもなく。むやみに。", gorogoro: "愛なしではつまらない、わけもなく気に食わない", part_of_speech: "形容詞・ク" },
+        { id: 2, word: "あか（ず）", meaning: "①もの足りない。満足しない。②嫌にならない。飽きない。", gorogoro: "あかずの扉じゃもの足りない、赤ずきん着ても嫌にならない", part_of_speech: "連語" },
+        { id: 3, word: "あからさま（なり）", meaning: "①ついちょっと。仮に。②急に。たちまち。", gorogoro: "アからサまではついちょっと", part_of_speech: "形容動詞・ナリ" },
+        { id: 4, word: "あきらむ", meaning: "①明らかにする。はっきりさせる。②心の中を明かす。気持ちを晴らす。", gorogoro: "アキラ、むかしのことを明らかにする", part_of_speech: "動詞・マ行下二段" },
+        { id: 5, word: "あく", meaning: "①満足する。②嫌になる。飽きる。", gorogoro: "悪魔満足するが、やがて嫌になる", part_of_speech: "動詞・カ四段" },
+        { id: 6, word: "あくが・る", meaning: "①さまよい歩く。浮かかれ出る。②心がひかれて落ち着かない。思い焦がれる。③うわの空になる。魂が抜け出る。", gorogoro: "アーク我ルンルンて、さまよい歩いてうわの空", part_of_speech: "動詞・ラ行下二段" },
+        { id: 7, word: "あさまし", meaning: "①驚き呆れる。情けない。興ざめだ。話にならない。ひどい。", gorogoro: "朝、目覚ましにて驚き呆れて情けない", part_of_speech: "形容詞・シク" },
+        { id: 8, word: "あさむ", meaning: "①【あさむ】驚き呆れる。驚く。②【あざむ】見下す。馬鹿にする。", gorogoro: "朝、紫式部に見下されて驚き呆れる", part_of_speech: "動詞・マ行四段" },
+        { id: 9, word: "あし", meaning: "①悪い。②下手だ。③卑しい。", gorogoro: "アシカのショーが悪い、下手だ", part_of_speech: "形容詞・シク" },
+        { id: 10, word: "あだ（なり）", meaning: "①浮気なさま。無駄なさま。はかないさま。③いい加減なさま。", gorogoro: "あーだ、浮気は無駄よ、はかないわ", part_of_speech: "形容動詞・ナリ" },
+        { id: 11, word: "あたらしい", meaning: "①もったいない。惜しい。②立派だ。素晴らしい。", gorogoro: "あっ、たらしちゃった、もったいない", part_of_speech: "形容詞・シク" },
+        { id: 12, word: "あぢきなし", meaning: "①つまらない。情けない。②どうしようもない。無益だ。道理に合わない。", gorogoro: "あー磁気なしバンド、つまらない", part_of_speech: "形容詞・ク" },
+        { id: 13, word: "あて（なり）", meaning: "①身分が高い。高貴である。②上品だ。優美だ。", gorogoro: "あてだっせ、上品で身分が高いのは", part_of_speech: "形容動詞・ナリ" },
+        { id: 14, word: "あながち（なり）", meaning: "①無理やりだ。強引だ。②むやみだ。ひたすらだ。③度を越している。", gorogoro: "穴が小さくなるッ、だけど無理やり進もう", part_of_speech: "形容動詞・ナリ" },
+        { id: 15, word: "あはれ（なり）", meaning: "①しみじみと趣がある。情趣がある。②（文脈に応じて）かわいい。気の毒だ。立派だ。など③【感動詞】ああ。", gorogoro: "ああ、晴れたとしみじみとす", part_of_speech: "形容動詞・ナリ／感動詞" },
+        { id: 16, word: "あふ", meaning: "①結婚する。②出会う。対面する。③出くわす。適合する。", gorogoro: "ああ、ふと結婚する", part_of_speech: "動詞・ハ行四段" },
+        { id: 17, word: "あまた", meaning: "①たくさん。数多く。②非常に。はなはだだ。", gorogoro: "あまった？たくさん", part_of_speech: "副詞" },
+        { id: 18, word: "あやし", meaning: "①【奇し・怪し】不思議だ。異常だ。並々ではない。②【賤し】身分が低い。③【賎しい】見苦しい。", gorogoro: "あっやし（怪し）の実だ。いや、しいたけだ、そまつぼっくりだ。不思議だなあ", part_of_speech: "形容詞・シク" },
+        { id: 19, word: "あらまほし", meaning: "①理想的だ。好ましい。②【連語（あら＋まほし）】そうありたい。あってほしい。", gorogoro: "あら、マホしっかリ者。理想的でそうありたい", part_of_speech: "形容詞・シク／連語" },
+        { id: 20, word: "ありがたし", meaning: "①珍しい。めったにない。②生きていくのが困難だ。（めったにないほど）すぐれている。難しい。困難だ。", gorogoro: "アリが足し算してる、珍しい。生きづらい世の中だ", part_of_speech: "形容詞・ク" },
+        { id: 21, word: "ありく", meaning: "①歩き回る。②【補助動詞】あれこれ〜し続ける。③【補助動詞】あちこちで〜する。", gorogoro: "アリクイが歩き回り続ける", part_of_speech: "動詞・カ行四段" },
+        { id: 22, word: "いう（なり）", meaning: "①上品だ。優美だ。奥ゆかしい。②素晴らしくよい。優れている。", gorogoro: "優子のうなり声は上品で素晴らしい", part_of_speech: "形容動詞・ナリ" },
+        { id: 23, word: "いかが（は）せむ", meaning: "①【疑問】どうしようか。②【反語】どうしようもない。仕方がない。", gorogoro: "イカがせまってくる！どうしようか、どうしようもない", part_of_speech: "連語" },
+        { id: 24, word: "いかで", "meaning": "①【願望】なんとかして。②【疑問】どうして。どうやって。③【反語】どうして〜か（いや〜ない）。", gorogoro: "イカでかいのはどうして？なんとかしてよ", part_of_speech: "副詞" },
+        { id: 25, word: "いたし", meaning: "①【甚し】はなはだしい。ひどい。②【甚し】素晴らしい。立派だ。③【甚く】たいそう。④【痛し】苦痛である。", gorogoro: "胃、たしかにだな。でもそう素晴らしい", part_of_speech: "形容詞・ク／痛し" },
+        { id: 26, word: "いたづら（なり）", meaning: "①無駄である。役に立たない。むなしい。はかない。②何もない。することがない。", gorogoro: "いたずらしてもだけ、無駄だ、むなしいだけ", part_of_speech: "形容動詞・ナリ" },
+        { id: 27, word: "いつしか", meaning: "①【願望表現を伴って】早く（〜したい）。②いつの間にか。", gorogoro: "いつ鹿来るの？早く見たい", part_of_speech: "副詞" },
+        { id: 28, word: "いとど", meaning: "①いっそう。ますます。②その上さらに。", gorogoro: "糸どっさり！いっそう頑張る", part_of_speech: "副詞" },
+        { id: 29, word: "いとほし", meaning: "①気の毒だ。かわいそうだ。②かわいい。いじらしい。", gorogoro: "伊藤氏は気の毒だ", part_of_speech: "形容詞・シク" },
+        { id: 30, word: "いけなし", meaning: "①子どもっぽい。あどけない。", gorogoro: "いいわけなしよ、なあ、子どもだなあ", part_of_speech: "形容詞・ク" },
+        { id: 31, word: "いふかひなし", meaning: "①どうしようもない。言っても仕方がない。②つまらない。情けない。③身分が低い。取るに足りない。④（「いふかひなくなる」の形で）世を去る。死ぬ。", gorogoro: "誘拐なしはつまらない", part_of_speech: "形容詞・ク" },
+        { id: 32, word: "いぶせし", meaning: "①憂鬱だ。気分が晴れない。②不快だ。むさくるしい。", gorogoro: "イブはせんし、憂鬱だ", part_of_speech: "形容詞・ク" },
+        { id: 33, word: "いふもおろかなり", meaning: "①言い尽くせない。②言い尽くせないほど〜だ。", gorogoro: "いい羽毛＝老化なく、言い尽くせないほどよい", part_of_speech: "連語" },
+        { id: 34, word: "いへばさらなり・いふもさらなり", meaning: "①言うまでもない。②言うまでもないほど〜だ。", gorogoro: "いー夫婦も、言えばさらによいのは言うまでもない", part_of_speech: "連語" },
+        { id: 35, word: "いみじ", meaning: "①程度がはなはだしい.素晴らしい。②ひどい。大変だ。", gorogoro: "いいミジンコははなはだだ、素晴らしい。いや、ひどい", part_of_speech: "形容詞・シク" },
+        { id: 36, word: "いらふ・いらへ", meaning: "①【動】返事をする。答える。②【名】返事。返答。", gorogoro: "イラフ人、いらへんでも返事せい", part_of_speech: "動詞・ハ下二／名詞" },
+        { id: 37, word: "うし", meaning: "①つらい。嫌だ。②気に食わない。憎い。③つれない。無情だ。", gorogoro: "牛の世話はつらいから気に食わない", part_of_speech: "形容詞・ク" },
+        { id: 38, word: "うしろめたし", meaning: "①心配だ。気掛かりだ。②うしろ暗い。気がとがめる。", gorogoro: "後ろの目、確かに心配だ", part_of_speech: "形容詞・ク" },
+        { id: 39, word: "うしろやすし", meaning: "①安心だ。頼りになる。", gorogoro: "後ろが安いし安心だ", part_of_speech: "形容詞・ク" },
+        { id: 40, word: "うたて", meaning: "①ますます。ますますひどく。②気味悪く。異様に。", gorogoro: "歌ってみると、ますますひどく、気味悪い", part_of_speech: "副詞" },
+        { id: 41, word: "うつくし", meaning: "①かわいい。かわいらしい。②きれいだ。③立派だ。みごとだ。", gorogoro: "うっ、つくしんぼうかわいいな", part_of_speech: "形容詞・シク" },
+        { id: 42, word: "うるはし", meaning: "①端麗である。立派だ。②整っていて美しい。③格式ばっている。④仲がよい。", gorogoro: "ウールはしっかり整っている", part_of_speech: "形容詞・シク" },
+        { id: 43, word: "え（〜ず）", meaning: "①【下に打消表現を伴って】〜することできない。", gorogoro: "えー、ずーっとできないの？", part_of_speech: "副詞" },
+        { id: 44, word: "おくる", meaning: "①取り残される。あとに残る。②死に遅れる。先立たれる。③劣る。", gorogoro: "おークルクル、取り残されて死に遅れる", part_of_speech: "動詞・ラ下二" },
+        { id: 45, word: "おこたる", meaning: "①病気が治る。快方に向かう。②怠ける。休む。", gorogoro: "怠っときだけちう…とおこたにあたると病気が治る", part_of_speech: "動詞・ラ四" },
+        { id: 46, word: "おこなふ", meaning: "①仏道修行する。勤行する。②する。行う。", gorogoro: "おー粉フリフリおー粉フリフリ仏道修行する", part_of_speech: "動詞・ハ四" },
+        { id: 47, word: "おとなし", meaning: "①大人びている。②思慮分別がある。老成している。③年配で、おもだっている。", gorogoro: "おとなしい子は大人びている", part_of_speech: "形容詞・シク" },
+        { id: 48, word: "おとにくきく", meaning: "①うわさに聞く。②評判が高い。有名だ。", gorogoro: "夫に聞くという、夫に聞くと評判が高いといううわさだ", part_of_speech: "連語" },
+        { id: 49, word: "おどろく", meaning: "①はっとして気づく。②目が覚める。③びっくりする。", gorogoro: "おっと六時だ、て、はっと気づいて目が覚める", part_of_speech: "動詞・カ四" },
+        { id: 50, word: "おのづから", meaning: "①【下に仮定・推定表現を伴って】ひょっとして。②偶然。たまたま。③自然と。ひとりでに出。", gorogoro: "小野塚らはひょっとして偶然、自然公園に行った？", part_of_speech: "副詞" },
+        { id: 51, word: "おはす", meaning: "①いらっしゃる。（「あり」「行く」「来る」の尊敬語）②【尊敬の補助動詞】〜ていらっしゃる。", gorogoro: "お、ハスの上にいらっしゃる", part_of_speech: "動詞・サ変" },
+        { id: 52, word: "おぼえ", meaning: "①（よい）評判。世評。うわさ。②寵愛（を受けること）。信任。", gorogoro: "オーボエ吹きは評判いい、超一愛してる", part_of_speech: "名詞" },
+        { id: 53, word: "おほす", meaning: "①おっしゃる。（「言ふ」の尊敬語）②命じる。", gorogoro: "「オホホ、ステキ」とおっしゃる", part_of_speech: "動詞・サ下二" },
+        { id: 54, word: "おぼす", meaning: "①お思いになる。（「思ふ」の尊敬語）", gorogoro: "大ボスがお思いになる", part_of_speech: "動詞・サ四" },
+        { id: 55, word: "おほせらる", meaning: "①おっしゃる。（「言ふ」の尊敬語）", gorogoro: "おーホセ、「ラムール」とおっしゃる", part_of_speech: "動詞・ラ下二" },
+        { id: 56, word: "おぼつかなし", meaning: "①気掛かりだ。不安だ。②はっきりしない。ぼんやりしている。③不審だ。疑わしい。④待ち遠しい。", gorogoro: "おーボッツ悲しい、気掛かりだ、結果がはっきりしなくて待ち遠しい", part_of_speech: "形容詞・ク" },
+        { id: 57, word: "おほとのごもる", meaning: "①お休みになる。（「寝・寝ぬ」の尊敬語）", gorogoro: "オホホ。殿、ゴモラとルンルンお休みになる", part_of_speech: "動詞・ラ四" },
+        { id: 58, word: "おほやけ", meaning: "①宮中。朝廷。皇居。②天皇。", gorogoro: "オホホ、焼けちゃった宮中", part_of_speech: "名詞" },
+        { id: 59, word: "おぼゆ", meaning: "①自然に思われる。感じる。②思い出される。③似ている。", gorogoro: "お盆の湯に似ていると思われる", part_of_speech: "動詞・ヤ下二" },
+        { id: 60, word: "おぼろけ（なり）", meaning: "①普通だ。並ひと通りだ。②格別だ。", gorogoro: "おーボロもうけできたら普通に格別だ", part_of_speech: "形容動詞・ナリ" },
+        { id: 61, word: "おろか（なり）", meaning: "①いいかげんだ。おろそかだ。粗略だ。②未熟だ。劣る。馬鹿だ。", gorogoro: "おー廊下掃除がこの、馬鹿者！", part_of_speech: "形容動詞・ナリ" },
+        { id: 62, word: "かこつ", meaning: "①他のせいにす・る。かこつける。②嘆く。不平を言う。", gorogoro: "過去つらいのはお前、お前のせいだと嘆く", part_of_speech: "動詞・タ四" },
+        { id: 63, word: "かしこし", meaning: "①畏れ多い。尊い。高貴だ。②賢い。立派だ。③非常に。はなはだしく。④都合がよい。", gorogoro: "菓子、こしあんで非常に恐れ多い", part_of_speech: "形容詞・ク" },
+        { id: 64, word: "かしづく", meaning: "①大切に養い育てる。②大切に世話をする。後見をする。", gorogoro: "菓子づっくりと大切に育てる", part_of_speech: "動詞・カ四" },
+        { id: 65, word: "かしらおろす・みぐしおろす", meaning: "①出家する。剃髪する。", gorogoro: "カシラ 見ぐるしくておーロスで出家する", part_of_speech: "連語" },
+        { id: 66, word: "かたち", meaning: "①容貌。顔かたち。②外形。姿。", gorogoro: "かたちが良いのををご要望（容貌）", part_of_speech: "名詞" },
+        { id: 67, word: "かたちをかふ・さまをかふ", meaning: "①出家する。剃髪する。", gorogoro: "蚊たちをかぶってて出家する", part_of_speech: "連語" },
+        { id: 68, word: "かたはらいたし", meaning: "①傍らで見ていて）苦しい。いたいけだ。②（傍らの人に見られて）気恥ずかしい。③気の毒だ。", gorogoro: "片腹痛いし、苦々しい。そばで見られて恥ずかしい", part_of_speech: "形容詞・ク" },
+        { id: 69, word: "かたみに", meaning: "①互いに。かわるがわる。", gorogoro: "形見にしよう、お互いに", part_of_speech: "副詞" },
+        { id: 70, word: "かちより", meaning: "①徒歩で。歩いて。", gorogoro: "勝鬨橋より徒歩で", part_of_speech: "連語" },
+        { id: 71, word: "かなし・かなしうす", meaning: "①（愛し）かわいい。いとしい。②（恋し）かわいそうだ。心が痛む。", gorogoro: "悲しい白井君、かわいい", part_of_speech: "形容詞・シク／動詞・サ変" },
+        { id: 72, word: "かは", meaning: "①【反語】〜か、いや〜ない。②【疑問】〜か。", gorogoro: "かはらず反語 か、いやそうじゃない", part_of_speech: "係助詞" },
+        { id: 73, word: "きこしめす・きこす", meaning: "①お聞きになる。（「聞く」の尊敬語）②（「きこしめす」のみ）召し上がる（「食ふ」「飲む」の尊敬語）", gorogoro: "紀子様、指名してお聞きになって召し上がる", part_of_speech: "動詞・サ四" },
+        { id: 74, word: "きこゆ・きこえさす", meaning: "①申し上げる。（手紙などを）差し上げる。（「言ふ」の謙譲語）②【謙譲の補助】〜申し上げる。③評判である。④わけがわかる。理解される。", gorogoro: "「聞こう、ゆっくり」「では申し上げる殿ってわかる殿って評判です」", part_of_speech: "動詞・ヤ下二" },
+        { id: 75, word: "ぐす", meaning: "①備わる。そろう。備える。そろえる。②連れて行く。従える。", gorogoro: "グースカ寝たままでサー変連れて行く、サー変", part_of_speech: "動詞・サ変" },
+        { id: 76, word: "くちをし", meaning: "①残念だ。くやしい。情けない。②もの足りない。つまらない。", gorogoro: "区長就任しただけじゃもの足りなくて残念だ", part_of_speech: "形容詞・シク" },
+        { id: 77, word: "けしき", meaning: "①（自然の）様子。ありさま。②意向。意中。③顔色。表情。態度。（人間の）様子。④機嫌。気分。", gorogoro: "毛、しきりにはみ出す顔色の様子", part_of_speech: "名詞" },
+        { id: 78, word: "げに", meaning: "①なるほどその通り。②（感動・賛成の意を表して）本当に。なるほど。まったく。", gorogoro: "げいになのね、なるほど本当に", part_of_speech: "副詞" },
+        { id: 79, word: "こころざし", meaning: "①心を向けること。②愛情。心を寄せること。③贈り物。④供養。", gorogoro: "心の雑誌は愛情", part_of_speech: "名詞" },
+        { id: 80, word: "こころづきなし", meaning: "①気に食わない。不愉快だ。②気が引かれない。面白みがない。", gorogoro: "コロコロくっつきなし、気に食わない", part_of_speech: "形容詞・ク" },
+        { id: 81, word: "こころづくし", meaning: "あれこれとものを思うこと。", gorogoro: "コロコロづくしで、もの思い", part_of_speech: "名詞" },
+        { id: 82, word: "こころにくし", meaning: "①上品だ。奥ゆかしい。心ひかれる。②恐るべきだ。③不審だ。", gorogoro: "コロコロにくし、上品で奥ゆかしい", part_of_speech: "形容詞・ク" },
+        { id: 83, word: "こころもとなし", meaning: "①じれったい。待ち遠しい。②不安だ。気掛かりだ。③ぼんやりしている。はっきりしない。", gorogoro: "コロコロもうとっくになし、じれったいしぼんやりと不安だ", part_of_speech: "形容詞・ク" },
+        { id: 84, word: "こそ〜已然形、……", meaning: "【逆接】〜けれども、……〜が、……〜のに、", gorogoro: "コソ泥、以前刑事だったけれども", part_of_speech: "係助詞" },
+        { id: 85, word: "ことわり（なり）", meaning: "①【名】ものの道理。筋道。②【名】わけ。理由。③【形動】当然である。もちろんである。", gorogoro: "琴割ります。然割れない！、ものの道理、当然割れない「たわけ！」", part_of_speech: "名詞・形容動詞・ナリ" },
+        { id: 86, word: "さうざうし", meaning: "心さびしい。なんとなくもの足りない。", gorogoro: "想像したら心さびしいです", part_of_speech: "形容詞・シク" },
+        { id: 87, word: "さうなし", meaning: "①左右無し）どうとも決まらない。②左右無し）簡単だ。あれこれ考えるまでもない。③双無し）またとない。並ぶものがない。", gorogoro: "サウナで知り合うのは簡単だ！またとないチャンス", part_of_speech: "形容詞・ク" },
+        { id: 88, word: "さかし", meaning: "①かしこい。利口だ。②気丈だ。しっかりしている。③こざかしい。利口ぶる。", gorogoro: "サッカーしたら、かしこいやつがござかしい", part_of_speech: "形容詞・シク" },
+        { id: 89, word: "さすがに", meaning: "【流石に】とはいってもやはり、", gorogoro: "さすが忍者、そうはいってもやはり", part_of_speech: "副詞" },
+        { id: 90, word: "さながら", meaning: "①元のまま。そのまま。②全部。③（下に打消表現を伴って）全然（〜ない）。まったく（〜ない）。", gorogoro: "さあ、ながら勉強しても、全部元のまま", part_of_speech: "副詞" },
+        { id: 91, word: "さはれ", meaning: "【感動詞】どうにでもなれ。えい、ままよ。【接続詞】しかし。それはそうだが。", gorogoro: "さはれ爆弾！もうどうにでもなれ！", part_of_speech: "感動詞・接続詞" },
+        { id: 92, word: "さぶらふ／はべり", meaning: "①お仕え申し上げる。（「仕ふ」の謙譲語）②ございます。あります。（「あり」をりの丁寧語）③【丁寧の補助】〜ございます。〜ます。（「さふらふ」のみ）参上する。伺う。（「行く」「来（き）」の謙譲語）", gorogoro: "「三郎はベリーマッチョ」とお仕えします、とでお仕えます", part_of_speech: "動詞・ハ四／動詞・ラ変" },
+        { id: 93, word: "さへ", meaning: "【副助詞】〜までも。", gorogoro: "サ変までも覚えとこう", part_of_speech: "副助詞" },
+        { id: 94, word: "さら（なり）", meaning: "【更】言うまでもない。もちろんだ。", gorogoro: "サラリーマンになりたいのは言うまでもない", part_of_speech: "形容動詞・ナリ" },
+        { id: 95, word: "さればよ", meaning: "【然ればよ】やっぱりね。思った通りだ。", gorogoro: "下がればよい熱冷まし、やっぱりね、思った通りだ", part_of_speech: "連語" },
+        { id: 96, word: "しどけない", meaning: "①くつろいでいる。無造作である。②だらしない。", gorogoro: "シッ！どけ梨、くつろぐな。だらしないぞ", part_of_speech: "形容詞・ク" },
+        { id: 97, word: "しのぶ", meaning: "①【忍ぶ】我慢する。②【忍ぶ】人目を避ける。③【忍ぶ】秘密にする。隠す。④【偲ぶ】恋い慕う。", gorogoro: "しのぶちゃん、我慢しながら人目を避けて恋い慕う", part_of_speech: "動詞・バ四／動詞・下二" },
+        { id: 98, word: "しるし", meaning: "①【著し】はっきりしている。明らかである。②【著し】〜（も）しるくの形で）予想通りの〜の通り。③【験】効き目。霊験。御利益。④【験】前兆。", gorogoro: "シールしっかり、効き目はっきり、霊験導師", part_of_speech: "形容詞・ク／名詞" },
+        { id: 99, word: "すき", meaning: "①【好色・数寄】風流。風流の道に心寄せること。②好色。色好み。", gorogoro: "スキンヘッドは風流だ", part_of_speech: "名詞" },
+        { id: 100, word: "すさまじ", meaning: "①興ざめだ。つまらない。②寒々としている。殺風景である。", gorogoro: "スー様、爺は今日サメですぞ", part_of_speech: "形容詞・シク" },
+        { id: 101, word: "すずろ（なり）", meaning: "①なんとなく心が動くさま。なんとなく〜だ。②思いがけないさま。③何の関わりもないさま。④やたらに出。むやみに。", gorogoro: "鈴六個も鳴るなんてなんとなく思いがけない", part_of_speech: "形容動詞・ナリ" },
+        { id: 102, word: "ずちなし", meaning: "①どうしようもない。なすべき方法がない。", gorogoro: "ずーっとチューなしではどうしようもない", part_of_speech: "形容詞・ク" },
+        { id: 103, word: "すなはち", meaning: "①【副】すぐに。たちまち。②【名】即座。そのとき。③【接続詞】そこで。つまり。とりもなおさず。", gorogoro: "砂は血だらけ、すぐに110番", part_of_speech: "副詞・名詞・接続詞" },
+        { id: 104, word: "せうそこ・せうそく", meaning: "①手紙。伝言。②訪れること。案内を乞うこと。", gorogoro: "セイウチそこそこ手紙を書いて訪れる", part_of_speech: "名詞" },
+        { id: 105, word: "たてまつる", meaning: "①差し上げる。（「与ふ」の謙譲語）②【謙譲の補助】〜し申し上げる。③お召しになる。（「着る」の尊敬語）④お乗りになる。（「乗る」の尊敬語）⑤召し上がる。（「食ふ」の尊敬語）", gorogoro: "立ってまつって差し上げる", part_of_speech: "動詞・ラ四" },
+        { id: 106, word: "だに", meaning: "①【最低限】（下に仮定・意志・願望・命令表現を伴って）せめて〜だけでも。②【類推】〜さえ。", gorogoro: "ダニにもらうのは幸せ", part_of_speech: "副助詞" },
+        { id: 107, word: "たのむ", meaning: "①【マ四】あてにする。②【マ四】信頼する。③【マ下二】あてにさせる。④【マ下二】頼みに思わせる。", gorogoro: "タコ飲む男をあてにする", part_of_speech: "動詞・マ四／動詞・マ下二" },
+        { id: 108, word: "たまふ", meaning: "①【ハ四】お与えになる。くださる。（「与ふ」「授く」の尊敬語）②【ハ下二】［尊敬の補助］〜なさる。お〜になる。③【ハ下二】［謙譲の補助］〜ます。〜させていただく。", gorogoro: "「は・ひ・ふ」は尊敬、「ふる・ふれ」謙譲、「給へ」で悩め！", part_of_speech: "動詞・ハ四／動詞・ハ下二" },
+        { id: 109, word: "たまふ（ハ行四段）", meaning: "①お与えになる。くださる。（「与ふ」「授く」の尊敬語）②【尊敬の補助】〜なさる。お〜になる。", gorogoro: "玉振りりなさってお与えになる", part_of_speech: "動詞・ハ四" },
+        { id: 110, word: "たまふ（ハ行下二段）", meaning: "会話での「知り思ひ、聞き給へ」は謙譲でおます", gorogoro: "会話での「知り思ひ、聞き給へ」は謙譲でおます", part_of_speech: "動詞・ハ下二" },
+        { id: 111, word: "ちぎり", meaning: "①約束。言い交わすこと。②前世からの因縁。③男女・夫婦の縁。", gorogoro: "ちぎりを結んだ約束は、前世からの因縁", part_of_speech: "名詞" },
+        { id: 112, word: "ついで", meaning: "①機会。折。②順番。順序。", gorogoro: "ついでの機会に順番待ち", part_of_speech: "名詞" },
+        { id: 113, word: "つきづきし", meaning: "①似つかわしい。ふさわしい。②調和している。ぴったりして好ましい。", gorogoro: "月々シャツ似合う人がふさわしい", part_of_speech: "形容詞・シク" },
+        { id: 114, word: "つとめて", meaning: "①早朝。②（前夜、事があった）その翌朝。", gorogoro: "勤めててへん、朝早いから次の朝辞めちゃった", part_of_speech: "名詞" },
+        { id: 115, word: "つゆ・さらに（＋打消）", meaning: "（下に打消表現を伴って）まったく（〜ない）。", gorogoro: "つゆを皿にしちゃった……まったくない", part_of_speech: "副詞" },
+        { id: 116, word: "つれづれ（なり）", meaning: "①手持ち無沙汰だ。所在ない。②どうしようもなくひとりもの思いに沈むさま。", gorogoro: "つれづれー、手持ち無沙汰だ", part_of_speech: "形容動詞・ナリ" },
+        { id: 117, word: "つれなし", meaning: "①よよそしい。冷淡だ。②素知らぬ顔だ。関心が深くない。③なんの変化もない。", gorogoro: "連れなしによそしくて、素知らぬ顔だ", part_of_speech: "形容詞・ク" },
+        { id: 118, word: "で", meaning: "〜ないで。〜ずに。", gorogoro: "出ないで！", part_of_speech: "接続助詞" },
+        { id: 119, word: "てしか（な）・にしが（な）", meaning: "【自己の願望】〜したいものだ。", gorogoro: "てしかにシカ、食いたいものだ", part_of_speech: "終助詞" },
+        { id: 120, word: "ときめく", meaning: "①時勢にあって栄える。もてはやされる。②（帝から）寵愛される。", gorogoro: "ときめく心、超ー愛される", part_of_speech: "動詞・カ四" },
+        { id: 121, word: "とく（疾く）", meaning: "①早く。さっそく。②すでに。とっくに。", gorogoro: "解くのは早くしろ！", part_of_speech: "副詞" },
+        { id: 122, word: "ところせし（所狭し）", meaning: "①場所が狭い。②（心理的に）窮屈だ。やっかいだ。③堂々としている。いばっている。④おおげさだ。", gorogoro: "ところせまいし、窮屈なんてお大げさだ", part_of_speech: "形容詞・ク" },
+        { id: 123, word: "としごろ（年頃）", meaning: "①長年。数年来。", gorogoro: "年ごろは長年続かない", part_of_speech: "名詞" },
+        { id: 124, word: "とみ（急）（なり）", meaning: "①名：急なこと。急ぎ。②形動：急だ。", gorogoro: "トミー君は急だ", part_of_speech: "名詞／形容動詞・ナリ" },
+        { id: 125, word: "な（〜そ）", meaning: "（穏やかな禁止）〜するな。〜してくれるな。", gorogoro: "なー、そこでするな", part_of_speech: "副詞" },
+        { id: 126, word: "なかなか（なり）", meaning: "①形動：中途半端さま。②形動：かえって〜しないほうがよい。③副詞：かえって。④副詞：なまじっか。", gorogoro: "なかなかかえっていないほうがよい", part_of_speech: "形容動詞・ナリ／副詞" },
+        { id: 127, word: "ながむ（眺む・詠む）", meaning: "①【眺む】物思いに沈んでぼんやりと見る。②【眺む】見渡す。③【詠む】詩歌を節をつけて口ずさむ。吟じる。", gorogoro: "名が武蔵。歌を詠んだりもの思いにふけったり", part_of_speech: "動詞・マ下二" },
+        { id: 128, word: "なさけ（情け）", meaning: "①思いやり。人情。②風情。風流心。③男女間の愛情。", gorogoro: "な、酒には風情がある。思いやりも愛ある！", part_of_speech: "名詞" },
+        { id: 129, word: "なつかし（懐かし）", meaning: "①心ひかれる。慕わしい。②親しみやすい。親しみが感じられる。③懐かしい。", gorogoro: "懐かしい映画に心ひかれる", part_of_speech: "形容詞・シク" },
+        { id: 130, word: "なでふ", meaning: "①【副詞／疑問・反語】どうして〜か（いや、〜ない）。②【連体詞／疑問】なんという。③【連体詞／反語】どういう（〜か、いや、〜ない）。", gorogoro: "なでるフリしてどうしてぶつのか？なんということだ", part_of_speech: "副詞／連体詞" },
+        { id: 131, word: "などー（か・て・や）", meaning: "①【疑問】どうして。②【反語】どうして〜か（いや、〜ない）。", gorogoro: "なーどうしてどうして？", part_of_speech: "副詞" },
+        { id: 132, word: "なのめ（なり）（斜め）", meaning: "①平凡だ。普通だ。②いいかげんだ。③（中世以降「なのめに」の形で）格別に。並ひと通りでなく。", gorogoro: "何の目？ 平凡な目。いや格別な目", part_of_speech: "形容動詞・ナリ" },
+        { id: 133, word: "なべて", meaning: "①すべて。一般に。②普通。③一面に。一帯に。④（「なべてならず」の形で）並ひと通りではない。", gorogoro: "鍋って普通、すべってく", part_of_speech: "副詞" },
+        { id: 134, word: "なほ（猶・尚）", meaning: "①やはり。依然として。②それでもやはり。③さらに。もっと。", gorogoro: "なほちゃんはやはりいっそうかわいい", part_of_speech: "副詞" },
+        { id: 135, word: "なほざり（なり）（等閑）", meaning: "①いいかげんだ。おろそかだ。②ほどほどだ。", gorogoro: "なほ、ザリガニの世話がいいかげんだ", part_of_speech: "形容動詞・ナリ" },
+        { id: 136, word: "なまめかし（生めかし・艶めかし）", meaning: "①優美だ。上品だ。②みずみずしく美しい。③色っぽい。", gorogoro: "優美ちゃんはみずみずし、なまめかしいちゃんは", part_of_speech: "形容詞・ク" },
+        { id: 137, word: "（未然形＋）なむ", meaning: "①【他の願望】〜してほしい。", gorogoro: "未然にナムナムしてほしい", part_of_speech: "終助詞" },
+        { id: 138, word: "なやむ（悩む）", meaning: "①病気になる。病気で苦しむ。②非難する。③苦しむ。困る。", gorogoro: "悩むと病気になって苦しむ", part_of_speech: "動詞・マ四" },
+        { id: 139, word: "にほふ（匂ふ）", meaning: "①つややかに美しい。照り映える。②色づく。③香気がだただよう。④栄える。", gorogoro: "日本のフン、つややかに美しい", part_of_speech: "動詞・ハ四" },
+        { id: 140, word: "ねんごろ（なり）（懇ろ）", meaning: "①丁寧さま。親切さま。②仲むつまじさま。③熱心なさま。念を入れているさま。", gorogoro: "ねん土ゴロゴロ、丁寧に熱心に", part_of_speech: "形容動詞・ナリ" },
+        { id: 141, word: "ねんず（念ず）", meaning: "①心の中で祈る。②我慢する。こらえる。", gorogoro: "ねんずしたけど我慢する、サー変", part_of_speech: "動詞・サ変" },
+        { id: 142, word: "のたまふ（宣ふ）", meaning: "①おっしゃる。（「言ふ」の尊敬語）", gorogoro: "のんたん、「舞う」とおっしゃる", part_of_speech: "動詞・ハ四" },
+        { id: 143, word: "ののしる（罵る）", meaning: "①大声で言い騒ぐ。②評判が立つ。③今を時めく。勢いがいい。", gorogoro: "NoNo、シルエッツだけで評判が立つ", part_of_speech: "動詞・ラ四" },
+        { id: 144, word: "はかなし", meaning: "①頼りない。はかない。②むなしい。あっけない。③ちょっとしたことである。無益だ。④取るに足りない。", gorogoro: "はあ、悲しいわ、ちょっと頼りなくてむなしいわ", part_of_speech: "形容詞・ク" },
+        { id: 145, word: "はかばかし", meaning: "①てきぱきしている。②きわだっている。③しっかりしている。", gorogoro: "墓場で貸し借り、しっかりしてる", part_of_speech: "形容詞・シク" },
+        { id: 146, word: "はしたなし", meaning: "①中途半端だ。②みっともない。体裁が悪い。③つれない。", gorogoro: "走った梨、中途半端でみっともない", part_of_speech: "形容詞・ク" },
+        { id: 147, word: "ばや", meaning: "（自己の願望）〜したい。", gorogoro: "ばーやはしたい", part_of_speech: "終助詞" },
+        { id: 148, word: "ひがごと（非事）", meaning: "①間違い。あやまり。②道理に外れた行為。悪事。", gorogoro: "火がゴーっと燃えたら間違いだ", part_of_speech: "名詞" },
+        { id: 149, word: "びんなし（便無し）", meaning: "①不都合だ。具合が悪い。②気の毒だ。", gorogoro: "ビンなしジャムなんて不都合だ", part_of_speech: "形容詞・ク" },
+        { id: 150, word: "ふみ（文）", meaning: "①書物。②手紙。③漢字。漢詩。", gorogoro: "ふみお君、本を読んでカン・ガクガク", part_of_speech: "名詞" },
+        { id: 151, word: "ほい（本意）", meaning: "①本来の意志。かねてからの願い。宿願。②出家の願い。", gorogoro: "ホイホイ出家が本来の目的", part_of_speech: "名詞" },
+        { id: 152, word: "ほいなし（本意無し）", meaning: "①もの足りない。残念だ。②不本意だ。", gorogoro: "「ほい、梨」『梨じゃものの足りない。不本意だ", part_of_speech: "形容詞・ク" },
+        { id: 153, word: "ほだし（絆）", meaning: "①足手まとい。手かせ、足かせ。②出家の妨げとなるもの。", gorogoro: "ほうり出した足手まといは出家の妨げ", part_of_speech: "名詞" },
+        { id: 154, word: "ほど（程）", meaning: "①程度。くらい。②身分。③時間。ころ。間。", gorogoro: "ほどける程度", part_of_speech: "名詞" },
+        { id: 155, word: "まうけ（膳・設け）", meaning: "①準備。用意。②ごちそう。ごちそうの準備。もてなし。③食事。", gorogoro: "儲けたらごちそうの準備だ", part_of_speech: "名詞" },
+        { id: 156, word: "まめ（なり）（忠実・真実）", meaning: "①まじめさま。誠実なさま。②実用的なさま。③勤勉なさま。", gorogoro: "マメはまじめだ、実用的だ", part_of_speech: "形容動詞・ナリ" },
+        { id: 157, word: "まもる・まぼる（守る）", meaning: "①見つめる。じっと見る。②見張る。警戒する。", gorogoro: "まもる君を見つめる", part_of_speech: "動詞・ラ四" },
+        { id: 158, word: "まゐる（参る）", meaning: "①参上する。参詣する。（「行く」「来」の謙譲語）②貴人に何かをしてさしあげる。（「す」「仕ふ」の謙譲語）③差し上げる。献上する。（「与ふ」の謙譲語）④召し上がる。（「飲む・食ふ」の尊敬語）", gorogoro: "まあ、イルカを差し上げに参上する", part_of_speech: "動詞・ラ四" },
+        { id: 159, word: "みそか（なり）（密か）", meaning: "①こっそり。", gorogoro: "味噌買いにこっそり", part_of_speech: "形容動詞・ナリ" },
+        { id: 160, word: "むげ（なり）（無下）", meaning: "①この上なくひどいさま。最低。最悪。②ひどく身分が低いこと。③（「むげに」の形でおちぶれたさまに、④（「むげに」の形で）下に打ち消し表現を伴ってまったく（〜ない）。全然（〜ない）。", gorogoro: "むげー！ひでー！", part_of_speech: "名詞／形容動詞・ナリ" },
+        { id: 161, word: "むつかし", meaning: "①嫌だ。不快である。②うっとうしい。わずらわしい。③気味が悪い。恐ろしい。", gorogoro: "むつかしい試験　嫌だ、うっとうしい", part_of_speech: "形容詞・シク" },
+        { id: 162, word: "めざまし", meaning: "①（目が覚めるほど）素晴らしい。立派だ。②（目が覚めるほど）気に食わない。あきれるほどひどい。", gorogoro: "目覚まし鳴って、素晴らしく気に食わない", part_of_speech: "形容詞・シク" },
+        { id: 163, word: "めづ", meaning: "①愛する。かわいがる。②賞美する。ほめる。③感心する。心が引き付けられる。", gorogoro: "目、づっと愛して　感心だ", part_of_speech: "動詞・ダ行下二" },
+        { id: 164, word: "めでたし", meaning: "①素晴らしい。立派だ。みごとだ。②喜ばしい。祝うべきだ。", gorogoro: "目ー出たしっかり素晴らしい", part_of_speech: "形容詞・ク" },
+        { id: 165, word: "もがな・もがも", meaning: "①【願望】〜があればなあ。〜であればなあ。", gorogoro: "桃がない、桃がもっとあればなあ", part_of_speech: "終助詞" },
+        { id: 166, word: "もぞ・もこそ", meaning: "①〜すると困る。〜すると大変だ。", gorogoro: "もぞもぞすると困る、もこそもこそすると大変だ", part_of_speech: "連語" },
+        { id: 167, word: "やうやう", meaning: "①だんだん。次第に。②かろうじ て。やっと。", gorogoro: "ヨーヨーだんだん上手になる", part_of_speech: "副詞" },
+        { id: 168, word: "やがて", meaning: "①そのまま。②すぐに。", gorogoro: "矢が的中、そのまま惚れる", part_of_speech: "副詞" },
+        { id: 169, word: "やすし", meaning: "①穏やかだ。②簡単だ。たやすい。", gorogoro: "安い寿司でも簡単に心穏やかになる", part_of_speech: "形容詞・ク" },
+        { id: 170, word: "やすらふ", meaning: "①ためらう。②たたずむ。立ち止まる。③滞在する。", gorogoro: "安いピラフは注文ためらってたたずんじゃう", part_of_speech: "動詞・ハ四／ハ下二" },
+        { id: 171, word: "やは", meaning: "①【反語】〜か、いや〜ない。②【疑問】〜か。", gorogoro: "やはり反語か、いやそうじゃない", part_of_speech: "係助詞" },
+        { id: 172, word: "やはら・やをやら", meaning: "①そっと。静かに。", gorogoro: "やはらちゃんをそっと静かに投げる", part_of_speech: "副詞" },
+        { id: 173, word: "やむごとなし", meaning: "①捨ててはおけない。②格別だ。尊い。③身が高い。高貴だ。", gorogoro: "やーみごとな梨、身が高くて格別だ", part_of_speech: "形容詞・ク" },
+        { id: 174, word: "ゆかし", meaning: "①知りたい。見たい。聞きたい。読みたい。②心ひかれる", gorogoro: "ユカ、知りたいの、心ひかれるから", part_of_speech: "形容詞・シク" },
+        { id: 175, word: "ゆめゆめ", meaning: "①（下に禁止表現を伴って）決して（〜するな）。②（下に打消表現を伴って）まったく（〜ない）。少しも（〜ない）。", gorogoro: "夢々言うのは決して禁止！まったく否定！", part_of_speech: "副詞" },
+        { id: 176, word: "ゆゆし", meaning: "①不吉だ。恐れ多い。②はなはだしい。③素晴らしい。④ひどい。恐ろしい。", gorogoro: "UUCコーヒーなんてはなはだ不吉だ。いや素晴らしい", part_of_speech: "形容詞・シク" },
+        { id: 177, word: "よし", meaning: "①由来。いわれ。②手段。方法。③理由。原因。④風情。趣。⑤そふり。", gorogoro: "よし子様の風情あるそぶりには理由がある", part_of_speech: "名詞" },
+        { id: 178, word: "よしなし", meaning: "①理由がない。手段がない。②関係がない。縁がない。③つまらない。", gorogoro: "よしーな、死んでくれれば、もらんし、理由もなければ手段もないぞ", part_of_speech: "形容詞・ク" },
+        { id: 179, word: "よも", meaning: "①まさか（〜ではないだろう・すまい）。決して（〜ではないだろう・すまい）。", gorogoro: "よもやまさか、痔になるまい", part_of_speech: "副詞" },
+        { id: 180, word: "れいの", meaning: "①【連体修飾語】いつもの。②【連体修飾語】普通の。③【連用語】いつものように。", gorogoro: "「例のをくれ」「いつもの普通のやつですね、旦那」", part_of_speech: "連語" },
+        { id: 181, word: "わびし", meaning: "①つらい。やりきれない。困る。②もの悲しい。さびしい。③貧しい。みずぼらしい。④興ざまだ。面白くない。", gorogoro: "ワサビしみる、貧乏はつらくてもの悲しい", part_of_speech: "形容詞・シク" },
+        { id: 182, word: "わりなし", meaning: "①むちゃくちゃだ。道理に合わない。②つらい。③仕方がない。", gorogoro: "わりー梨、むちゃくちゃだ。つらいけど仕方がない", part_of_speech: "形容詞・ク" },
+        { id: 183, word: "ゐる", meaning: "①座っている。じっとしている。②率（ひき）いる。連れて行く。伴う。", gorogoro: "イルカが座っているから連れて行くワ", part_of_speech: "動詞・ワ上二" },
+        { id: 184, word: "をかし", meaning: "①趣がある。②おかしい。滑稽だ。③かわいい。愛らしい。④興味深い。", gorogoro: "ヲー、樫の木だ、趣がある", part_of_speech: "形容詞・シク" },
+        { id: 185, word: "をさをさ", meaning: "①（下に打消表現を伴って）めったに（〜ない）。ほとんど（〜ない）。", gorogoro: "長をさがすも、めったにいない", part_of_speech: "副詞" }
+    ];
+
+    let state = {
+        1: {
+            hard: { known: [], review: [] },
+            easy: { known: [] }
+        }
+    };
+
+    function loadState() {
+        const saved = localStorage.getItem('kobun_app_state_v3');
+        if (saved) {
+            state = JSON.parse(saved);
+        }
+    }
+
+    function saveState() {
+        localStorage.setItem('kobun_app_state_v3', JSON.stringify(state));
+    }
+
+    loadState();
+
+    let selectedMode = '';
+    let currentRank = 1;
+    let currentMode = ''; 
+    let currentQueue = [];
+    let currentIndex = 0;
+    
+    let unshownPool = [];
+    let shownPool = [];
+    let currentCardItem = null;
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function openRankSelect(mode) {
+        selectedMode = mode;
+        document.getElementById('rank-select-title').innerText = `${mode === 'hard' ? 'ハードモード' : 'のんびりモード'}：ランクを選択`;
+        showScreen('rank-screen');
+    }
+
+    function initPool(words) {
+        unshownPool = [...words];
+        shownPool = [];
+        shuffleArray(unshownPool);
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function getNextRandomWord(allWords) {
+        if (unshownPool.length === 0) {
+            unshownPool = [...shownPool];
+            shownPool = [];
+            shuffleArray(unshownPool);
+        }
+        const word = unshownPool.pop();
+        shownPool.push(word);
+        return word;
+    }
+
+    function startSession(mode, rank) {
+        currentMode = mode;
+        currentRank = rank;
+        currentIndex = 0;
+
+        let sourceWords = rank1Words;
+
+        if (mode === 'review') {
+            currentQueue = sourceWords.filter(w => state[rank].hard.review.includes(w.id));
+            if (currentQueue.length === 0) {
+                alert("現在、ランク1の復習対象ワードはありません！");
+                return;
+            }
+            shuffleArray(currentQueue);
+        } else {
+            initPool(sourceWords);
+        }
+
+        showScreen('study-screen');
+        loadCard();
+    }
+
+    function loadCard() {
+        let item;
+        let totalCount = rank1Words.length;
+
+        if (currentMode === 'review') {
+            if (currentIndex >= currentQueue.length) {
+                alert("復習セッションが終了しました！");
+                showScreen('menu-screen');
+                return;
+            }
+            item = currentQueue[currentIndex];
+            document.getElementById('progress-counter').innerText = `復習中 ${currentIndex + 1} / ${currentQueue.length}`;
+        } else {
+            item = getNextRandomWord(rank1Words);
+            document.getElementById('progress-counter').innerText = `出題 (${shownPool.length} / ${totalCount})`;
+        }
+
+        currentCardItem = item;
+
+        document.getElementById('word-display').innerText = item.word;
+        document.getElementById('pos-display').innerText = item.part_of_speech;
+        document.getElementById('meaning-display').innerText = "意味：\n" + item.meaning;
+        document.getElementById('goro-display').innerText = "語呂：\n" + item.gorogoro;
+
+        // カード切り替わり時にアニメーションを再トリガー
+        const cardBox = document.getElementById('card-box');
+        cardBox.style.animation = 'none';
+        cardBox.offsetHeight; // reflow
+        cardBox.style.animation = 'fadeIn 0.3s ease-in-out';
+
+        const answerSection = document.getElementById('answer-section');
+        const hintBtn = document.getElementById('hint-btn');
+        const judgmentButtons = document.getElementById('judgment-buttons');
+        const nextBtn = document.getElementById('next-btn');
+
+        if (currentMode === 'easy') {
+            // のんびりモード：最初から意味も語呂も全開
+            answerSection.style.display = 'block';
+            hintBtn.style.display = 'none';
+            judgmentButtons.style.display = 'none';
+            nextBtn.style.display = 'block';
+        } else {
+            // ハードモード / 復習モード：最初から意味や語呂は隠しておく
+            answerSection.style.display = 'none';
+            hintBtn.style.display = 'block';
+            hintBtn.innerText = 'ヒント（語呂）を見る';
+            judgmentButtons.style.display = 'flex';
+            nextBtn.style.display = 'none';
+        }
+    }
+
+    // ヒントボタンを押したときは「語呂だけ」を表示、意味は隠したままにする
+    function showGoroHint() {
+        const answerSection = document.getElementById('answer-section');
+        const goroDisplay = document.getElementById('goro-display');
+        const meaningDisplay = document.getElementById('meaning-display');
+        
+        answerSection.style.display = 'block';
+        goroDisplay.style.display = 'block';
+        meaningDisplay.style.display = 'none'; // 意味は隠す
+        document.getElementById('hint-btn').style.display = 'none'; // ヒントボタンを消す
+    }
+
+    function answer(isKnown) {
+        const item = currentCardItem;
+
+        if (!state[currentRank]) {
+            state[currentRank] = { hard: { known: [], review: [] }, easy: { known: [] } };
+        }
+
+        // 「わかった」「わからなかった」が押されたら、ここで初めて意味も含めて全公開する
+        const answerSection = document.getElementById('answer-section');
+        const meaningDisplay = document.getElementById('meaning-display');
+        const goroDisplay = document.getElementById('goro-display');
+        answerSection.style.display = 'block';
+        meaningDisplay.style.display = 'block';
+        goroDisplay.style.display = 'block';
+        document.getElementById('hint-btn').style.display = 'none';
+
+        // 判定ボタンを消して「次の単語へ」ボタンを表示する
+        document.getElementById('judgment-buttons').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'block';
+
+        if (currentMode === 'hard' || currentMode === 'review') {
+            if (isKnown) {
+                if (!state[currentRank].hard.known.includes(item.id)) state[currentRank].hard.known.push(item.id);
+                state[currentRank].hard.review = state[currentRank].hard.review.filter(id => id !== item.id);
+            } else {
+                if (!state[currentRank].hard.review.includes(item.id)) state[currentRank].hard.review.push(item.id);
+                state[currentRank].hard.known = state[currentRank].hard.known.filter(id => id !== item.id);
+            }
+            saveState();
+        }
+    }
+
+    function nextCard() {
+        const item = currentCardItem;
+        if (currentMode === 'easy') {
+            if (!state[currentRank]) {
+                state[currentRank] = { hard: { known: [], review: [] }, easy: { known: [] } };
+            }
+            if (!state[currentRank].easy.known.includes(item.id)) {
+                state[currentRank].easy.known.push(item.id);
+                saveState();
+            }
+        } else if (currentMode === 'review') {
+            currentIndex++;
+            loadCard();
+            return;
+        }
+        loadCard();
+    }
+
+    function showProgressScreen() {
+        showScreen('progress-screen');
+        
+        const total = rank1Words.length;
+        const rState = state[1] || { hard: { known: [], review: [] }, easy: { known: [] } };
+        
+        const hardKnownCount = rState.hard.known.length;
+        const hardPct = Math.round((hardKnownCount / total) * 100);
+        document.getElementById('hard-pct-1').innerText = `${hardPct}% (${hardKnownCount}/${total}語)`;
+        document.getElementById('hard-bar-1').style.width = `${hardPct}%`;
+
+        const easyKnownCount = rState.easy.known.length;
+        const easyPct = Math.round((easyKnownCount / total) * 100);
+        document.getElementById('easy-pct-1').innerText = `${easyPct}% (${easyKnownCount}/${total}語)`;
+        document.getElementById('easy-bar-1').style.width = `${easyPct}%`;
+
+        document.getElementById('review-count-1').innerText = rState.hard.review.length;
+    }
+
+    function resetAppData() {
+        if (confirm("すべての学習進捗データを初期化しますか？この操作は元に戻せません。")) {
+            localStorage.removeItem('kobun_app_state_v3');
+            state = {
+                1: {
+                    hard: { known: [], review: [] },
+                    easy: { known: [] }
+                }
+            };
+            alert("データを初期化しました。");
+            showScreen('menu-screen');
+        }
+    }
+</script>
+
+</body>
+</html>
